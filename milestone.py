@@ -69,6 +69,11 @@ Milestone class.
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# In addition to the above, the code was slightly modified by the author
+# github@linxOD to include the milestone tag in the output files.
+# New function `get_milestone` was added
+# Function `combine_part` was modified to include the milestone tag
+
 
 import os
 import argparse
@@ -80,6 +85,10 @@ __version__ = "0.2"
 CLOSING_TAG = "</%s>"
 OPENING_TAG = '<%s%s>'
 ATTRIBUTE = ' %s="%s"'
+NSMAP = {
+    "tei": "http://www.tei-c.org/ns/1.0",
+    "xml": "http://www.w3.org/XML/1998/namespace"
+}
 
 
 def main():
@@ -186,7 +195,6 @@ class Milestone(object):
             closing = ""
         else:
             closing = self.parts[next_milestone_name]['closing']
-
         data = self.parts[name]
         if data['text']:
             middle = data['text'] + '\n'
@@ -194,7 +202,10 @@ class Milestone(object):
                 middle = '\n'
         else:
             middle = ""
-        return data['opening'] + middle + closing
+        milestone_opening = self.create_opening_tags(data['milestone'])
+        milestone_closing = CLOSING_TAG % data['milestone'][0][0]
+        milestone = milestone_opening + milestone_closing
+        return data['opening'] + milestone + middle + closing
 
     def write_file(self, name, output_file):
         """Write a single file."""
@@ -233,10 +244,16 @@ class Milestone(object):
         return [(parent.tag, parent.attrib)
                 for parent in milestone.iterancestors()]
 
+    @staticmethod
+    def get_milestone(milestone):
+        """Get the milestone tag and attributes."""
+        return [(milestone.tag, milestone.attrib)]
+
     def process_milestone(self, milestone):
         """Process the milestone."""
         name = self.get_milestone_name(milestone)
         self.parts[name] = {'parents': self.get_parents(milestone)}
+        self.parts[name]['milestone'] = self.get_milestone(milestone)
 
     def split_raw(self, filename):
         """Split the raw text of the file by milestone."""
